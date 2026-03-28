@@ -11,7 +11,7 @@ HEADERS = {
 }
 
 
-def get_congressional_trades(lookback_days: int = 30, limit: int = 20) -> str:
+def get_congressional_trades(lookback_days: int = 30, limit: int = 10) -> str:
     """Fetch recent insider/congressional trade filings from SEC EDGAR Form 4."""
     try:
         end_date = datetime.now().strftime('%Y-%m-%d')

@@ -12,7 +12,7 @@ CRYPTO_KEYWORDS = [
 ]
 
 
-def get_polymarket_signals(limit: int = 10) -> str:
+def get_polymarket_signals(limit: int = 5) -> str:
     """
     Fetch crowd-probability signals from Polymarket using the Gamma API.
     Returns active crypto/macro prediction markets with YES probabilities.
