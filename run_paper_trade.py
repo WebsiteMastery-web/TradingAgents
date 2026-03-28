@@ -1,4 +1,7 @@
-import sys, os, datetime
+import sys
+import os
+sys.path.insert(0, "/root/limitless-ai/TradingAgents")
+from tradingagents.execution.telegram_notifier import notify_hold, send_telegram, os, datetime
 sys.path.insert(0, "/root/limitless-ai/TradingAgents")
 from dotenv import load_dotenv
 load_dotenv("/root/limitless-ai/TradingAgents/.env")
@@ -43,6 +46,13 @@ def run_cycle(symbol_yfinance="BTC-USD", symbol_alpaca="BTC/USD"):
     )
     if decision.upper() not in ["BUY", "SELL"]:
         logger.info("Decision is HOLD. No order placed.")
+        # Send Telegram HOLD summary once per day (on the noon run)
+        if cron_mode:
+            from datetime import datetime
+            _hour = datetime.utcnow().hour
+            if _hour in (11, 12):  # noon UTC cron run
+                _mf_label = mirofish_signal.get("label") if mirofish_signal else None
+                notify_hold(ap, current_price, decision_data.get("confidence", 65), _mf_label)
         return
     balance = get_paper_balance()
     buying_power = balance["buying_power"]

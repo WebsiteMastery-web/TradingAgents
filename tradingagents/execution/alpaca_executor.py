@@ -5,6 +5,7 @@ from loguru import logger
 from alpaca.trading.client import TradingClient
 from alpaca.trading.requests import LimitOrderRequest
 from alpaca.trading.enums import OrderSide, TimeInForce
+from tradingagents.execution.telegram_notifier import notify_cron_pending
 
 load_dotenv('/root/limitless-ai/TradingAgents/.env')
 
@@ -47,6 +48,8 @@ def place_paper_trade(symbol, direction, quantity, limit_price, stop_loss_price,
         logger.info('CRON MODE: BUY/SELL signal detected - logging as CRON_PENDING for manual review.')
         _log_trade(trade_id, symbol, direction, limit_price, stop_loss_price,
                    quantity, confidence_score, trigger_layer, mirofish_output, timestamp, 'CRON_PENDING', None)
+        notify_cron_pending(symbol, direction, limit_price, stop_loss_price,
+                            quantity, confidence_score, mirofish_output, trade_id)
         return None
     decision = input('  [C]onfirm / [R]eject: ').strip().upper()
     if decision != 'C':
