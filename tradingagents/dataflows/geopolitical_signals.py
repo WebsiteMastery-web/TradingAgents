@@ -86,22 +86,21 @@ def get_geopolitical_signal(headlines: str) -> dict:
     """
     Given a string of current news headlines, return geopolitical causal chain analysis.
     """
-    anthropic_key = os.getenv('ANTHROPIC_API_KEY')
+    anthropic_key = os.getenv('OPENROUTER_API_KEY') or os.getenv('ANTHROPIC_API_KEY')
     if not anthropic_key:
-        logger.warning("No ANTHROPIC_API_KEY — skipping geopolitical analysis")
+        logger.warning("No OPENROUTER_API_KEY — skipping geopolitical analysis")
         return {"aggregate_signal": "NEUTRAL", "aggregate_confidence": 30,
                 "reasoning": "No API key", "geopolitical_events": []}
 
     try:
         resp = requests.post(
-            "https://api.anthropic.com/v1/messages",
+            "https://openrouter.ai/api/v1/chat/completions",
             headers={
-                "x-api-key": anthropic_key,
-                "anthropic-version": "2023-06-01",
+                "Authorization": f"Bearer {anthropic_key}",
                 "content-type": "application/json"
             },
             json={
-                "model": "claude-haiku-4-5-20251001",
+                "model": "deepseek/deepseek-chat",
                 "max_tokens": 1024,
                 "system": SYSTEM_PROMPT,
                 "messages": [

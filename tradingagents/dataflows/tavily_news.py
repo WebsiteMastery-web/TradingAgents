@@ -12,7 +12,7 @@ from loguru import logger
 TAVILY_API_KEY = os.getenv("TAVILY_API_KEY", "")
 
 
-def get_news_tavily(ticker: str, num_articles: int = 3) -> str:
+def get_news_tavily(ticker: str, num_articles: int = 3, curr_date: str = None) -> str:
     """Fetch recent news for a specific ticker/asset."""
     try:
         query = f"{ticker} price cryptocurrency news latest"
@@ -46,7 +46,7 @@ def get_news_tavily(ticker: str, num_articles: int = 3) -> str:
         return f"Tavily news unavailable: {e}"
 
 
-def get_global_news_tavily(num_articles: int = 5) -> str:
+def get_global_news_tavily(num_articles: int = 5, curr_date: str = None) -> str:
     """Fetch global macro news + all intelligence layers."""
     output = ""
 
