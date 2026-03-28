@@ -22,7 +22,7 @@ def get_trading_client():
 
 def place_paper_trade(symbol, direction, quantity, limit_price, stop_loss_price,
                       reasoning_chain, confidence_score, trigger_layer,
-                      mirofish_output=None, trade_id=None):
+                      mirofish_output=None, trade_id=None, cron_mode=False):
     if os.getenv('PAPER_TRADING', 'True').lower() != 'true':
         raise RuntimeError('PAPER_TRADING is not True. Refusing to execute.')
     if not trade_id:
@@ -43,6 +43,11 @@ def place_paper_trade(symbol, direction, quantity, limit_price, stop_loss_price,
     print('--- REASONING CHAIN ---')
     print(str(reasoning_chain)[:2000])
     print('=' * 70)
+    if cron_mode:
+        logger.info('CRON MODE: BUY/SELL signal detected - logging as CRON_PENDING for manual review.')
+        _log_trade(trade_id, symbol, direction, limit_price, stop_loss_price,
+                   quantity, confidence_score, trigger_layer, mirofish_output, timestamp, 'CRON_PENDING', None)
+        return None
     decision = input('  [C]onfirm / [R]eject: ').strip().upper()
     if decision != 'C':
         _log_trade(trade_id, symbol, direction, limit_price, stop_loss_price,

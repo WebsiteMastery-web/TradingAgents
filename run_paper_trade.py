@@ -1,0 +1,71 @@
+import sys, os, datetime
+sys.path.insert(0, "/root/limitless-ai/TradingAgents")
+from dotenv import load_dotenv
+load_dotenv("/root/limitless-ai/TradingAgents/.env")
+from loguru import logger
+from limitless_config import LIMITLESS_CONFIG
+from tradingagents.dataflows.alpaca_feed import get_current_price, get_paper_balance, get_ohlcv
+from tradingagents.execution.alpaca_executor import place_paper_trade
+from tradingagents.dataflows.openclaw_memory import log_trade_to_openclaw, log_signal_to_openclaw, write_limitless_context
+from tradingagents.dataflows.run_logger import log_pipeline_run, get_mirofish_comparison_stats
+from tradingagents.dataflows.mirofish_bridge import get_latest_mirofish_signal, format_mirofish_for_agent
+from tradingagents.dataflows.run_logger import log_pipeline_run
+from tradingagents.dataflows.mirofish_bridge import get_latest_mirofish_signal, format_mirofish_for_agent
+from tradingagents.graph.trading_graph import TradingAgentsGraph
+
+def run_cycle(symbol_yfinance="BTC-USD", symbol_alpaca="BTC/USD"):
+    logger.info(f"Starting trade cycle | yfinance={symbol_yfinance} alpaca={symbol_alpaca}")
+    current_price = get_current_price(symbol_alpaca)
+    logger.info(f"Current {symbol_alpaca} price: {current_price}")
+    today = datetime.date.today().strftime("%Y-%m-%d")
+    graph = TradingAgentsGraph(config=LIMITLESS_CONFIG)
+    logger.info("Running TradingAgents analysis pipeline... (takes 2-5 minutes)")
+    result, agent_logs = graph.propagate(symbol_yfinance, today)
+    decision = result.get("action") or result.get("trade_type") or "HOLD"
+    reasoning = str(result.get("reason") or result.get("reasoning") or result)
+    confidence = int(result.get("confidence", 65))
+    logger.info(f"Decision: {decision} | Confidence: {confidence}")
+    # Always attempt MiroFish — logs whether PC was on or off
+    mirofish_result = get_latest_mirofish_signal()
+    if mirofish_result:
+        mf_text = format_mirofish_for_agent(mirofish_result)
+        logger.info(f"MiroFish signal available: {mirofish_result.get('sentiment_label')} ({mirofish_result.get('sentiment_score')})")
+    else:
+        logger.info("MiroFish: PC off or no simulation run yet — proceeding without it")
+    # Log every run to comparison database
+    log_pipeline_run(
+        asset=yf,
+        price=current_price,
+        decision=decision,
+        confidence=confidence,
+        reasoning=reasoning,
+        mirofish_result=mirofish_result,
+    )
+    if decision.upper() not in ["BUY", "SELL"]:
+        logger.info("Decision is HOLD. No order placed.")
+        return
+    balance = get_paper_balance()
+    buying_power = balance["buying_power"]
+    trade_usd = buying_power * 0.10
+    quantity = round(trade_usd / current_price, 4)
+    quantity = max(quantity, 0.001)
+    stop_loss = round(current_price * 0.95 if decision.upper() == "BUY" else current_price * 1.05, 2)
+    order = place_paper_trade(
+        symbol=symbol_alpaca,
+        direction=decision.upper(),
+        quantity=quantity,
+        limit_price=round(current_price, 2),
+        stop_loss_price=stop_loss,
+        reasoning_chain=reasoning,
+        confidence_score=confidence,
+        trigger_layer="tradingagents_full_pipeline",
+        mirofish_output=None
+    )
+    if order:
+        logger.info(f"Week 1 complete. Order ID: {order.id}")
+
+if __name__ == "__main__":
+    yf = sys.argv[1] if len(sys.argv) > 1 else "BTC-USD"
+    ap = sys.argv[2] if len(sys.argv) > 2 else "BTC/USD"
+    cron_mode = "--cron" in sys.argv
+    run_cycle(yf, ap)
