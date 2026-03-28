@@ -1,7 +1,8 @@
 import sys
 import os
+import datetime
 sys.path.insert(0, "/root/limitless-ai/TradingAgents")
-from tradingagents.execution.telegram_notifier import notify_hold, send_telegram, os, datetime
+from tradingagents.execution.telegram_notifier import notify_hold, send_telegram
 sys.path.insert(0, "/root/limitless-ai/TradingAgents")
 from dotenv import load_dotenv
 load_dotenv("/root/limitless-ai/TradingAgents/.env")
@@ -48,8 +49,8 @@ def run_cycle(symbol_yfinance="BTC-USD", symbol_alpaca="BTC/USD"):
         logger.info("Decision is HOLD. No order placed.")
         # Send Telegram HOLD summary once per day (on the noon run)
         if cron_mode:
-            from datetime import datetime
-            _hour = datetime.utcnow().hour
+            import datetime as _dt
+            _hour = _dt.datetime.utcnow().hour
             if _hour in (11, 12):  # noon UTC cron run
                 _mf_label = mirofish_signal.get("label") if mirofish_signal else None
                 notify_hold(ap, current_price, decision_data.get("confidence", 65), _mf_label)
@@ -75,7 +76,8 @@ def run_cycle(symbol_yfinance="BTC-USD", symbol_alpaca="BTC/USD"):
         logger.info(f"Week 1 complete. Order ID: {order.id}")
 
 if __name__ == "__main__":
-    yf = sys.argv[1] if len(sys.argv) > 1 else "BTC-USD"
-    ap = sys.argv[2] if len(sys.argv) > 2 else "BTC/USD"
+    _args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    yf = _args[0] if len(_args) > 0 else "BTC-USD"
+    ap = _args[1] if len(_args) > 1 else "BTC/USD"
     cron_mode = "--cron" in sys.argv
     run_cycle(yf, ap)
