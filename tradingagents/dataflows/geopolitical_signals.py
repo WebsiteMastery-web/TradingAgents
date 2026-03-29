@@ -102,15 +102,16 @@ def get_geopolitical_signal(headlines: str) -> dict:
             json={
                 "model": "deepseek/deepseek-chat",
                 "max_tokens": 1024,
-                "system": SYSTEM_PROMPT,
                 "messages": [
+                    {"role": "system", "content": SYSTEM_PROMPT},
                     {"role": "user", "content": f"Current headlines:\n{headlines}"}
                 ]
             },
             timeout=30
         )
         resp.raise_for_status()
-        content = resp.json()["content"][0]["text"].strip()
+        resp_json = resp.json()
+        content = resp_json["choices"][0]["message"]["content"].strip()
 
         # Strip markdown fences if present
         if content.startswith("```"):
