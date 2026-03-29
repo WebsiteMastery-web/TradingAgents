@@ -46,7 +46,7 @@ def get_news_tavily(ticker: str, num_articles: int = 3, curr_date: str = None) -
         return f"Tavily news unavailable: {e}"
 
 
-def get_global_news_tavily(num_articles: int = 5, curr_date: str = None) -> str:
+def get_global_news_tavily(ticker: str = "BTC-USD", num_articles: int = 5, curr_date: str = None) -> str:
     """Fetch global macro news + all intelligence layers."""
     output = ""
 
